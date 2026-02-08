@@ -42,6 +42,7 @@
   "homepage": "https://github.com/ssshojaei/expo-cafebazaar-billing#readme",
   "files": [
     "build",
+    "docs",
     "src",
     "android/build.gradle",
     "android/src",
