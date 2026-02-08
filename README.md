@@ -28,18 +28,18 @@ No extra native config is required; the module adds the Poolakey dependency and 
 Call `connect()` before any other billing API. Pass your **RSA public key** (from Cafe Bazaar developer panel) for purchase verification in production.
 
 ```ts
-import CafeBazaarBilling from 'expo-cafebazaar-billing';
+import CafeBazaarBilling from "expo-cafebazaar-billing";
 
 await CafeBazaarBilling.connect({
-  rsaPublicKey: 'YOUR_RSA_PUBLIC_KEY', // optional but recommended
+  rsaPublicKey: "YOUR_RSA_PUBLIC_KEY", // optional but recommended
 });
 ```
 
 ### 2. Purchase a product
 
 ```ts
-const purchase = await CafeBazaarBilling.purchaseProduct('your_product_sku', {
-  developerPayload: 'optional-payload',
+const purchase = await CafeBazaarBilling.purchaseProduct("your_product_sku", {
+  developerPayload: "optional-payload",
   dynamicPriceToken: undefined, // optional, for dynamic pricing
 });
 console.log(purchase.purchaseToken, purchase.orderId);
@@ -48,9 +48,12 @@ console.log(purchase.purchaseToken, purchase.orderId);
 ### 3. Subscribe to a product
 
 ```ts
-const subscription = await CafeBazaarBilling.subscribeProduct('your_subscription_sku', {
-  developerPayload: 'optional-payload',
-});
+const subscription = await CafeBazaarBilling.subscribeProduct(
+  "your_subscription_sku",
+  {
+    developerPayload: "optional-payload",
+  },
+);
 ```
 
 ### 4. Consume a consumable purchase
@@ -67,15 +70,20 @@ await CafeBazaarBilling.consumePurchase(purchaseToken);
 const purchased = await CafeBazaarBilling.getPurchasedProducts();
 const subscribed = await CafeBazaarBilling.getSubscribedProducts();
 
-const one = await CafeBazaarBilling.queryPurchaseProduct('product_sku');
-const sub = await CafeBazaarBilling.querySubscribeProduct('subscription_sku');
+const one = await CafeBazaarBilling.queryPurchaseProduct("product_sku");
+const sub = await CafeBazaarBilling.querySubscribeProduct("subscription_sku");
 ```
 
 ### 6. Get SKU details
 
 ```ts
-const inAppDetails = await CafeBazaarBilling.getInAppSkuDetails(['sku1', 'sku2']);
-const subDetails = await CafeBazaarBilling.getSubscriptionSkuDetails(['sub_sku1']);
+const inAppDetails = await CafeBazaarBilling.getInAppSkuDetails([
+  "sku1",
+  "sku2",
+]);
+const subDetails = await CafeBazaarBilling.getSubscriptionSkuDetails([
+  "sub_sku1",
+]);
 ```
 
 ### 7. Disconnect
@@ -90,19 +98,19 @@ For each `connect()` call you should call `disconnect()` once.
 
 ## API summary
 
-| Method | Description |
-|--------|-------------|
-| `connect(options?)` | Connect to Bazaar billing; call first. |
-| `disconnect()` | Disconnect from Bazaar billing. |
-| `purchaseProduct(productId, options?)` | Start in-app product purchase flow. |
-| `subscribeProduct(productId, options?)` | Start subscription purchase flow. |
-| `consumePurchase(purchaseToken)` | Consume a consumable purchase. |
-| `getPurchasedProducts()` | List purchased in-app products. |
-| `getSubscribedProducts()` | List active subscriptions. |
-| `queryPurchaseProduct(productId)` | Get one purchase by product ID. |
-| `querySubscribeProduct(productId)` | Get one subscription by product ID. |
-| `getInAppSkuDetails(productIds)` | Get in-app product SKU details. |
-| `getSubscriptionSkuDetails(productIds)` | Get subscription SKU details. |
+| Method                                  | Description                            |
+| --------------------------------------- | -------------------------------------- |
+| `connect(options?)`                     | Connect to Bazaar billing; call first. |
+| `disconnect()`                          | Disconnect from Bazaar billing.        |
+| `purchaseProduct(productId, options?)`  | Start in-app product purchase flow.    |
+| `subscribeProduct(productId, options?)` | Start subscription purchase flow.      |
+| `consumePurchase(purchaseToken)`        | Consume a consumable purchase.         |
+| `getPurchasedProducts()`                | List purchased in-app products.        |
+| `getSubscribedProducts()`               | List active subscriptions.             |
+| `queryPurchaseProduct(productId)`       | Get one purchase by product ID.        |
+| `querySubscribeProduct(productId)`      | Get one subscription by product ID.    |
+| `getInAppSkuDetails(productIds)`        | Get in-app product SKU details.        |
+| `getSubscriptionSkuDetails(productIds)` | Get subscription SKU details.          |
 
 ## Types
 

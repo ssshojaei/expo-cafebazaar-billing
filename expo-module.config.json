@@ -1,6 +1,10 @@
 {
-  "platforms": ["android"],
+  "platforms": [
+    "android"
+  ],
   "android": {
-    "modules": ["expo.modules.cafebazaarbilling.CafeBazaarBillingModule"]
+    "modules": [
+      "expo.modules.cafebazaarbilling.CafeBazaarBillingModule"
+    ]
   }
 }

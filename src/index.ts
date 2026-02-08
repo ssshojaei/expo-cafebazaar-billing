@@ -1,18 +1,18 @@
-import { requireOptionalNativeModule } from 'expo-modules-core';
+import { requireOptionalNativeModule } from "expo-modules-core";
 
 import type {
   ConnectOptions,
   PurchaseOptions,
   PurchaseResult,
   SkuDetails,
-} from './CafeBazaarBilling.types';
+} from "./CafeBazaarBilling.types";
 
 export type {
   ConnectOptions,
   PurchaseOptions,
   PurchaseResult,
   SkuDetails,
-} from './CafeBazaarBilling.types';
+} from "./CafeBazaarBilling.types";
 
 export interface CafeBazaarBillingModule {
   /**
@@ -33,7 +33,7 @@ export interface CafeBazaarBillingModule {
    */
   purchaseProduct(
     productId: string,
-    options?: PurchaseOptions
+    options?: PurchaseOptions,
   ): Promise<PurchaseResult>;
 
   /**
@@ -42,7 +42,7 @@ export interface CafeBazaarBillingModule {
    */
   subscribeProduct(
     productId: string,
-    options?: PurchaseOptions
+    options?: PurchaseOptions,
   ): Promise<PurchaseResult>;
 
   /**
@@ -82,6 +82,6 @@ export interface CafeBazaarBillingModule {
 }
 
 const NativeModule =
-  requireOptionalNativeModule<CafeBazaarBillingModule>('CafeBazaarBilling');
+  requireOptionalNativeModule<CafeBazaarBillingModule>("CafeBazaarBilling");
 
 export default NativeModule;
