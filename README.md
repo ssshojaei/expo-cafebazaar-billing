@@ -18,6 +18,7 @@ Expo module for **Cafe Bazaar In-App Billing** on Android. Sell one-time product
 - [Hooks (recommended)](#hooks-recommended)
   - [useBillingProduct](#usebillingproduct)
   - [useBillingSubscription](#usebillingsubscription)
+- [Hook flowcharts](docs/HOOK_FLOWS.md) (Mermaid)
 - [Imperative API](#imperative-api)
 - [API reference](#api-reference)
 - [Types](#types)
@@ -94,36 +95,7 @@ function useBillingProduct(
 | `refresh`    | `() => Promise<void>`                     | Re-queries purchase status from Bazaar.                    |
 | `isAvailable`| `boolean`                                 | `false` when not Android or when the native module is not linked. |
 
-**Flow (on mount)**
-
-```mermaid
-flowchart TB
-  A["useBillingProduct()"] --> B{isAvailable?}
-  B -->|No| C["loading = false\npurchased = null"]
-  B -->|Yes| D["fetchStatus()"]
-  D --> E["connect(connectOptions)"]
-  E --> F["queryPurchaseProduct(productId)"]
-  F --> G["setPurchased(result)"]
-  G --> H["disconnect()"]
-  H --> I["loading = false"]
-```
-
-**Flow (purchase())**
-
-```mermaid
-flowchart TB
-  P["purchase() called"] --> Q{isAvailable?}
-  Q -->|No| R["return null"]
-  Q -->|Yes| S["setPurchasing(true)"]
-  S --> T["connect(connectOptions)"]
-  T --> U["purchaseProduct(productId, options)"]
-  U --> V{Success?}
-  V -->|Yes| W["setPurchased(result)\nreturn result"]
-  V -->|No| X["setError(message)\nreturn null"]
-  W --> Y["disconnect()"]
-  X --> Y
-  Y --> Z["setPurchasing(false)"]
-```
+Flowcharts: [HOOK_FLOWS.md](docs/HOOK_FLOWS.md#usebillingproduct).
 
 **Example**
 
@@ -203,36 +175,7 @@ function useBillingSubscription(
 | `refresh`            | `() => Promise<void>`                     | Re-queries subscription status from Bazaar.                                 |
 | `isAvailable`        | `boolean`                                 | Same as in `useBillingProduct`.                                             |
 
-**Flow (on mount)**
-
-```mermaid
-flowchart TB
-  A["useBillingSubscription()"] --> B{isAvailable?}
-  B -->|No| C["loading = false\nactiveSubscription = null"]
-  B -->|Yes| D["fetchStatus()"]
-  D --> E["connect(connectOptions)"]
-  E --> F["querySubscribeProduct(productId)"]
-  F --> G["setActiveSubscription(result)"]
-  G --> H["disconnect()"]
-  H --> I["loading = false"]
-```
-
-**Flow (subscribe())**
-
-```mermaid
-flowchart TB
-  P["subscribe() called"] --> Q{isAvailable?}
-  Q -->|No| R["return null"]
-  Q -->|Yes| S["setSubscribing(true)"]
-  S --> T["connect(connectOptions)"]
-  T --> U["subscribeProduct(productId, options)"]
-  U --> V{Success?}
-  V -->|Yes| W["setActiveSubscription(result)\nreturn result"]
-  V -->|No| X["setError(message)\nreturn null"]
-  W --> Y["disconnect()"]
-  X --> Y
-  Y --> Z["setSubscribing(false)"]
-```
+Flowcharts: [HOOK_FLOWS.md](docs/HOOK_FLOWS.md#usebillingsubscription).
 
 **Example**
 
