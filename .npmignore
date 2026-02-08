@@ -1,0 +1,7 @@
+# Build and tooling
+android/build/
+*.log
+.DS_Store
+node_modules/
+.expo/
+*.tsbuildinfo

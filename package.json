@@ -1,0 +1,55 @@
+{
+  "name": "expo-cafebazaar-billing",
+  "version": "1.0.0",
+  "description": "Cafe Bazaar In-App Billing for Expo (Android). Purchase products and subscriptions via Poolakey SDK.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "expo-module build"
+  },
+  "keywords": [
+    "expo",
+    "expo-module",
+    "react-native",
+    "cafe-bazaar",
+    "cafebazaar",
+    "bazaar",
+    "iran",
+    "in-app-billing",
+    "poolakey",
+    "purchase",
+    "subscription",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ssshojaei/expo-cafebazaar-billing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ssshojaei/expo-cafebazaar-billing/issues"
+  },
+  "author": "Saleh Shojaei <shojaeisaleh@gmail.com> (https://github.com/ssshojaei)",
+  "license": "MIT",
+  "homepage": "https://github.com/ssshojaei/expo-cafebazaar-billing#readme",
+  "files": [
+    "src",
+    "android/build.gradle",
+    "android/src",
+    "expo-module.config.json",
+    "LICENSE",
+    "README.md"
+  ],
+  "devDependencies": {
+    "expo-module-scripts": "^5.0.8"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "expo-modules-core": "*"
+  },
+  "peerDependenciesMeta": {
+    "expo-modules-core": {
+      "optional": false
+    }
+  }
+}
