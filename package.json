@@ -13,8 +13,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "expo-module build",
-    "prepare": "pnpm run build",
-    "prepublishOnly": "pnpm run build"
+    "build:once": "EXPO_NONINTERACTIVE=1 pnpm run build",
+    "prepare": "EXPO_NONINTERACTIVE=1 pnpm run build",
+    "prepublishOnly": "EXPO_NONINTERACTIVE=1 pnpm run build"
   },
   "keywords": [
     "expo",
