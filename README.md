@@ -23,7 +23,57 @@ No extra native config is required; the module adds the Poolakey dependency and 
 
 ## Usage
 
-### 1. Connect
+### Hooks (recommended)
+
+Use `useBillingProduct` and `useBillingSubscription` to handle status checks, purchase/subscribe flows, and loading state in one place.
+
+```tsx
+import {
+  useBillingProduct,
+  useBillingSubscription,
+} from "expo-cafebazaar-billing";
+
+function MyScreen() {
+  const connectOptions = useMemo(
+    () => ({ rsaPublicKey: process.env.EXPO_PUBLIC_CAFEBAZAAR_RSA_KEY }),
+    [],
+  );
+  const product = useBillingProduct("your_product_id", connectOptions);
+  const subscription = useBillingSubscription("your_subscription_id", connectOptions);
+
+  return (
+    <>
+      {product.purchased ? (
+        <Text>خریداری شده</Text>
+      ) : (
+        <Button
+          title={product.purchasing ? "…" : "Buy"}
+          onPress={() => product.purchase()}
+          disabled={product.purchasing || product.loading}
+        />
+      )}
+      {subscription.activeSubscription ? (
+        <Text>اشتراک فعال</Text>
+      ) : (
+        <Button
+          title={subscription.subscribing ? "…" : "Subscribe"}
+          onPress={() => subscription.subscribe()}
+          disabled={subscription.subscribing || subscription.loading}
+        />
+      )}
+    </>
+  );
+}
+```
+
+- **useBillingProduct(productId, connectOptions?)**  
+  Returns: `purchased`, `loading`, `purchase()`, `purchasing`, `error`, `refresh()`, `isAvailable`.
+- **useBillingSubscription(productId, connectOptions?)**  
+  Returns: `activeSubscription`, `loading`, `subscribe()`, `subscribing`, `error`, `refresh()`, `isAvailable`.
+
+On mount, each hook connects, queries status, and disconnects. `purchase()` / `subscribe()` run the payment flow and update state on success.
+
+### 1. Connect (imperative API)
 
 Call `connect()` before any other billing API. Pass your **RSA public key** (from Cafe Bazaar developer panel) for purchase verification in production.
 

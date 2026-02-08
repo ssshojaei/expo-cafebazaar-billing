@@ -40,4 +40,20 @@ export type PurchaseOptions = {
     /** Optional dynamic price token for dynamic pricing. */
     dynamicPriceToken?: string;
 };
+/**
+ * Native module interface for Cafe Bazaar Billing.
+ */
+export interface CafeBazaarBillingModule {
+    connect(options?: ConnectOptions): Promise<void>;
+    disconnect(): Promise<void>;
+    purchaseProduct(productId: string, options?: PurchaseOptions): Promise<PurchaseResult>;
+    subscribeProduct(productId: string, options?: PurchaseOptions): Promise<PurchaseResult>;
+    consumePurchase(purchaseToken: string): Promise<void>;
+    getPurchasedProducts(): Promise<PurchaseResult[]>;
+    getSubscribedProducts(): Promise<PurchaseResult[]>;
+    queryPurchaseProduct(productId: string): Promise<PurchaseResult | null>;
+    querySubscribeProduct(productId: string): Promise<PurchaseResult | null>;
+    getInAppSkuDetails(productIds: string[]): Promise<SkuDetails[]>;
+    getSubscriptionSkuDetails(productIds: string[]): Promise<SkuDetails[]>;
+}
 //# sourceMappingURL=CafeBazaarBilling.types.d.ts.map
