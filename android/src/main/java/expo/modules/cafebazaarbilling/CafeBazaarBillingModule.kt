@@ -13,7 +13,6 @@ import ir.cafebazaar.poolakey.ConnectionState
 import ir.cafebazaar.poolakey.Payment
 import ir.cafebazaar.poolakey.config.PaymentConfiguration
 import ir.cafebazaar.poolakey.config.SecurityCheck
-import ir.cafebazaar.poolakey.exception.DisconnectException
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.Serializable
@@ -33,7 +32,7 @@ private sealed class BillingResult : Serializable {
 }
 
 /** Contract to start BillingActivity and get purchase result or error. */
-private class BillingActivityContract : AppContextActivityResultContract<PurchaseInput, BillingResult?>() {
+private class BillingActivityContract : AppContextActivityResultContract<PurchaseInput, BillingResult?> {
   override fun createIntent(context: android.content.Context, input: PurchaseInput): Intent {
     return Intent(context, BillingActivity::class.java).apply {
       putExtra(BillingActivity.EXTRA_PRODUCT_ID, input.productId)
@@ -139,20 +138,26 @@ class CafeBazaarBillingModule : Module() {
       val paymentInstance = Payment(context = ctx, config = config)
       payment = paymentInstance
       CafeBazaarBillingModule.setCurrentPayment(paymentInstance)
+      var connectPromiseSettled = false
+      fun settleConnectOnce(reject: Boolean, code: String, msg: String, e: Throwable?) {
+        if (connectPromiseSettled) return
+        connectPromiseSettled = true
+        if (reject) promise.reject(code, msg, e) else promise.resolve(null)
+      }
       paymentInstance.connect {
         connectionSucceed {
-          promise.resolve(null)
+          settleConnectOnce(false, "", "", null)
         }
         connectionFailed {
           CafeBazaarBillingModule.setCurrentPayment(null)
           this@CafeBazaarBillingModule.payment = null
-          promise.reject("ERR_CONNECT", it.message ?: "Connection failed", it)
+          settleConnectOnce(true, "ERR_CONNECT", it.message ?: "Connection failed", it)
         }
         disconnected {
           CafeBazaarBillingModule.setCurrentPayment(null)
           this@CafeBazaarBillingModule.payment = null
           paymentConnection = null
-          promise.reject("ERR_DISCONNECT", "Billing disconnected", DisconnectException())
+          // Do not settle connect promise here: it was already resolved in connectionSucceed.
         }
       }.also { paymentConnection = it }
     }
