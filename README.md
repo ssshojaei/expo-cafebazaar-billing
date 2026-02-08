@@ -1,15 +1,39 @@
 # expo-cafebazaar-billing
 
-Cafe Bazaar **In-App Billing** for Expo (Android). Purchase in-app products and subscriptions using the official [Poolakey](https://github.com/cafebazaar/Poolakey) SDK.
+Expo module for **Cafe Bazaar In-App Billing** on Android. Sell one-time products and subscriptions using the official [Poolakey](https://github.com/cafebazaar/Poolakey) SDK.
 
-- [Cafe Bazaar In-App Billing – Intro](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro)
-- [Subscriptions](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription)
+**References**
+
+- [Cafe Bazaar – In-App Billing Introduction](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro)
+- [Cafe Bazaar – Subscriptions](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription)
+- [Poolakey SDK (GitHub)](https://github.com/cafebazaar/Poolakey)
+
+---
+
+## Table of contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage overview](#usage-overview)
+- [Hooks (recommended)](#hooks-recommended)
+  - [useBillingProduct](#usebillingproduct)
+  - [useBillingSubscription](#usebillingsubscription)
+- [Imperative API](#imperative-api)
+- [API reference](#api-reference)
+- [Types](#types)
+- [Errors](#errors)
+- [License](#license)
+
+---
 
 ## Requirements
 
-- **Android only** (Cafe Bazaar is an Android app store)
-- [Cafe Bazaar (Bazaar) app](https://cafebazaar.ir/app/com.farsitel.bazaar) installed on the device for testing
-- Expo SDK (with `expo-modules-core`)
+- **Android only** — Cafe Bazaar is an Android app store; this module does nothing on iOS.
+- **Cafe Bazaar app** installed on the device (required for testing and production).  
+  [Download from Cafe Bazaar](https://cafebazaar.ir/app/com.farsitel.bazaar)
+- **Expo** project with `expo-modules-core` (Expo SDK 49+).
+
+---
 
 ## Installation
 
@@ -19,165 +43,362 @@ pnpm add expo-cafebazaar-billing
 npm install expo-cafebazaar-billing
 ```
 
-No extra native config is required; the module adds the Poolakey dependency and the billing activity automatically.
+No extra native configuration is required. The module registers the Poolakey dependency and the billing activity automatically.
 
-## Usage
+---
 
-### Hooks (recommended)
+## Usage overview
 
-Use `useBillingProduct` and `useBillingSubscription` to handle status checks, purchase/subscribe flows, and loading state in one place.
+You can use either:
+
+1. **Hooks** — `useBillingProduct` and `useBillingSubscription` handle connection, status checks, and purchase/subscribe flows with a single call. Best for screens that show one product or subscription.
+2. **Imperative API** — Call `connect()`, then methods on the default export, then `disconnect()`. Use when you need full control (e.g. multiple products, custom flows).
+
+Both rely on the same native module and [Cafe Bazaar billing concepts](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro).
+
+---
+
+## Hooks (recommended)
+
+The hooks connect to Bazaar, query purchase/subscription status on mount, and disconnect. They expose loading state, errors, and functions to run the purchase or subscription flow.
+
+### useBillingProduct
+
+Use for **one-time in-app products**.
+
+**Signature**
+
+```ts
+function useBillingProduct(
+  productId: string,
+  connectOptions?: UseBillingProductOptions
+): UseBillingProductResult
+```
+
+**Parameters**
+
+| Parameter         | Type                    | Description                                                                 |
+| ----------------- | ----------------------- | --------------------------------------------------------------------------- |
+| `productId`       | `string`                | Your in-app product SKU (e.g. from [Cafe Bazaar developer panel](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro)). |
+| `connectOptions`  | `ConnectOptions` (opt.) | Optional. `{ rsaPublicKey?: string }`. Use RSA public key for verification. |
+
+**Return value**
+
+| Property     | Type                                      | Description                                                |
+| ------------ | ----------------------------------------- | ---------------------------------------------------------- |
+| `purchased`  | `PurchaseResult \| null`                  | Current purchase for this product, or `null` if not owned. |
+| `loading`    | `boolean`                                 | `true` while checking status on mount or after `refresh()`. |
+| `purchase`   | `(options?) => Promise<PurchaseResult \| null>` | Starts the purchase flow. Resolves with result or `null` on failure. |
+| `purchasing` | `boolean`                                 | `true` while the purchase flow is in progress.             |
+| `error`      | `string \| null`                          | Last error message from purchase or refresh.               |
+| `refresh`    | `() => Promise<void>`                     | Re-queries purchase status from Bazaar.                    |
+| `isAvailable`| `boolean`                                 | `false` when not Android or when the native module is not linked. |
+
+**Flow (on mount)**
+
+```mermaid
+flowchart TB
+  A["useBillingProduct()"] --> B{isAvailable?}
+  B -->|No| C["loading = false\npurchased = null"]
+  B -->|Yes| D["fetchStatus()"]
+  D --> E["connect(connectOptions)"]
+  E --> F["queryPurchaseProduct(productId)"]
+  F --> G["setPurchased(result)"]
+  G --> H["disconnect()"]
+  H --> I["loading = false"]
+```
+
+**Flow (purchase())**
+
+```mermaid
+flowchart TB
+  P["purchase() called"] --> Q{isAvailable?}
+  Q -->|No| R["return null"]
+  Q -->|Yes| S["setPurchasing(true)"]
+  S --> T["connect(connectOptions)"]
+  T --> U["purchaseProduct(productId, options)"]
+  U --> V{Success?}
+  V -->|Yes| W["setPurchased(result)\nreturn result"]
+  V -->|No| X["setError(message)\nreturn null"]
+  W --> Y["disconnect()"]
+  X --> Y
+  Y --> Z["setPurchasing(false)"]
+```
+
+**Example**
 
 ```tsx
-import {
-  useBillingProduct,
-  useBillingSubscription,
-} from "expo-cafebazaar-billing";
+import { useMemo } from "react";
+import { useBillingProduct } from "expo-cafebazaar-billing";
 
-function MyScreen() {
+function ProductScreen() {
   const connectOptions = useMemo(
     () => ({ rsaPublicKey: process.env.EXPO_PUBLIC_CAFEBAZAAR_RSA_KEY }),
-    [],
+    []
   );
-  const product = useBillingProduct("your_product_id", connectOptions);
-  const subscription = useBillingSubscription("your_subscription_id", connectOptions);
+  const product = useBillingProduct("your_product_sku", connectOptions);
+
+  if (!product.isAvailable) {
+    return <Text>Billing is not available on this device.</Text>;
+  }
+
+  if (product.loading) {
+    return <Text>Checking purchase status…</Text>;
+  }
 
   return (
     <>
       {product.purchased ? (
-        <Text>خریداری شده</Text>
+        <Text>Already purchased</Text>
       ) : (
         <Button
-          title={product.purchasing ? "…" : "Buy"}
+          title={product.purchasing ? "Processing…" : "Buy"}
           onPress={() => product.purchase()}
-          disabled={product.purchasing || product.loading}
+          disabled={product.purchasing}
         />
       )}
+      {product.error && <Text style={{ color: "red" }}>{product.error}</Text>}
+    </>
+  );
+}
+```
+
+**Behavior**
+
+- On mount, the hook connects, calls `queryPurchaseProduct(productId)`, then disconnects. It sets `purchased` and turns off `loading` when done.
+- Call `purchase()` to run the purchase flow; on success, `purchased` is updated.
+- Call `refresh()` to re-query status (e.g. after a purchase made elsewhere).
+
+---
+
+### useBillingSubscription
+
+Use for **subscriptions**.
+
+**Signature**
+
+```ts
+function useBillingSubscription(
+  productId: string,
+  connectOptions?: UseBillingSubscriptionOptions
+): UseBillingSubscriptionResult
+```
+
+**Parameters**
+
+| Parameter         | Type                             | Description                                                                 |
+| ----------------- | --------------------------------- | --------------------------------------------------------------------------- |
+| `productId`       | `string`                          | Your subscription product SKU. See [Cafe Bazaar subscriptions](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription). |
+| `connectOptions`  | `ConnectOptions` (opt.)           | Optional. `{ rsaPublicKey?: string }`.                                      |
+
+**Return value**
+
+| Property             | Type                                      | Description                                                                 |
+| -------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| `activeSubscription` | `PurchaseResult \| null`                  | Active subscription for this product, or `null` if none or expired.        |
+| `loading`            | `boolean`                                 | `true` while checking status on mount or after `refresh()`.                 |
+| `subscribe`          | `(options?) => Promise<PurchaseResult \| null>` | Starts the subscription flow. Resolves with result or `null` on failure. |
+| `subscribing`        | `boolean`                                 | `true` while the subscription flow is in progress.                          |
+| `error`              | `string \| null`                          | Last error message from subscribe or refresh.                                |
+| `refresh`            | `() => Promise<void>`                     | Re-queries subscription status from Bazaar.                                 |
+| `isAvailable`        | `boolean`                                 | Same as in `useBillingProduct`.                                             |
+
+**Flow (on mount)**
+
+```mermaid
+flowchart TB
+  A["useBillingSubscription()"] --> B{isAvailable?}
+  B -->|No| C["loading = false\nactiveSubscription = null"]
+  B -->|Yes| D["fetchStatus()"]
+  D --> E["connect(connectOptions)"]
+  E --> F["querySubscribeProduct(productId)"]
+  F --> G["setActiveSubscription(result)"]
+  G --> H["disconnect()"]
+  H --> I["loading = false"]
+```
+
+**Flow (subscribe())**
+
+```mermaid
+flowchart TB
+  P["subscribe() called"] --> Q{isAvailable?}
+  Q -->|No| R["return null"]
+  Q -->|Yes| S["setSubscribing(true)"]
+  S --> T["connect(connectOptions)"]
+  T --> U["subscribeProduct(productId, options)"]
+  U --> V{Success?}
+  V -->|Yes| W["setActiveSubscription(result)\nreturn result"]
+  V -->|No| X["setError(message)\nreturn null"]
+  W --> Y["disconnect()"]
+  X --> Y
+  Y --> Z["setSubscribing(false)"]
+```
+
+**Example**
+
+```tsx
+import { useMemo } from "react";
+import { useBillingSubscription } from "expo-cafebazaar-billing";
+
+function SubscriptionScreen() {
+  const connectOptions = useMemo(
+    () => ({ rsaPublicKey: process.env.EXPO_PUBLIC_CAFEBAZAAR_RSA_KEY }),
+    []
+  );
+  const subscription = useBillingSubscription("your_subscription_sku", connectOptions);
+
+  if (!subscription.isAvailable || subscription.loading) {
+    return <Text>Loading…</Text>;
+  }
+
+  return (
+    <>
       {subscription.activeSubscription ? (
-        <Text>اشتراک فعال</Text>
+        <Text>Subscription active</Text>
       ) : (
         <Button
-          title={subscription.subscribing ? "…" : "Subscribe"}
+          title={subscription.subscribing ? "Processing…" : "Subscribe"}
           onPress={() => subscription.subscribe()}
-          disabled={subscription.subscribing || subscription.loading}
+          disabled={subscription.subscribing}
         />
+      )}
+      {subscription.error && (
+        <Text style={{ color: "red" }}>{subscription.error}</Text>
       )}
     </>
   );
 }
 ```
 
-- **useBillingProduct(productId, connectOptions?)**  
-  Returns: `purchased`, `loading`, `purchase()`, `purchasing`, `error`, `refresh()`, `isAvailable`.
-- **useBillingSubscription(productId, connectOptions?)**  
-  Returns: `activeSubscription`, `loading`, `subscribe()`, `subscribing`, `error`, `refresh()`, `isAvailable`.
+**Behavior**
 
-On mount, each hook connects, queries status, and disconnects. `purchase()` / `subscribe()` run the payment flow and update state on success.
+- On mount, connects, calls `querySubscribeProduct(productId)`, then disconnects. Sets `activeSubscription` and clears `loading` when done.
+- Call `subscribe()` to run the subscription flow; on success, `activeSubscription` is updated.
+- Call `refresh()` to re-query subscription status.
 
-### 1. Connect (imperative API)
+---
 
-Call `connect()` before any other billing API. Pass your **RSA public key** (from Cafe Bazaar developer panel) for purchase verification in production.
+## Imperative API
+
+For full control, use the default export and call `connect()` before any other method, then `disconnect()` when finished. See [Cafe Bazaar – In-App Billing](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) for concepts.
+
+**Connect (required first)**
 
 ```ts
 import CafeBazaarBilling from "expo-cafebazaar-billing";
 
 await CafeBazaarBilling.connect({
-  rsaPublicKey: "YOUR_RSA_PUBLIC_KEY", // optional but recommended
+  rsaPublicKey: "YOUR_RSA_PUBLIC_KEY", // optional; recommended for production
 });
 ```
 
-### 2. Purchase a product
+**Purchase a product**
 
 ```ts
-const purchase = await CafeBazaarBilling.purchaseProduct("your_product_sku", {
+const result = await CafeBazaarBilling.purchaseProduct("product_sku", {
   developerPayload: "optional-payload",
-  dynamicPriceToken: undefined, // optional, for dynamic pricing
+  dynamicPriceToken: undefined, // optional; for dynamic pricing
 });
-console.log(purchase.purchaseToken, purchase.orderId);
+// result: PurchaseResult
 ```
 
-### 3. Subscribe to a product
+**Subscribe**
 
 ```ts
-const subscription = await CafeBazaarBilling.subscribeProduct(
-  "your_subscription_sku",
-  {
-    developerPayload: "optional-payload",
-  },
-);
+const result = await CafeBazaarBilling.subscribeProduct("subscription_sku", {
+  developerPayload: "optional-payload",
+});
 ```
 
-### 4. Consume a consumable purchase
+**Consume a consumable**
 
-After granting the user the consumable item:
+After granting the item to the user:
 
 ```ts
 await CafeBazaarBilling.consumePurchase(purchaseToken);
 ```
 
-### 5. Query purchases and subscriptions
+**Query status**
 
 ```ts
-const purchased = await CafeBazaarBilling.getPurchasedProducts();
-const subscribed = await CafeBazaarBilling.getSubscribedProducts();
-
+const allPurchases = await CafeBazaarBilling.getPurchasedProducts();
+const allSubs = await CafeBazaarBilling.getSubscribedProducts();
 const one = await CafeBazaarBilling.queryPurchaseProduct("product_sku");
 const sub = await CafeBazaarBilling.querySubscribeProduct("subscription_sku");
 ```
 
-### 6. Get SKU details
+**SKU details**
 
 ```ts
-const inAppDetails = await CafeBazaarBilling.getInAppSkuDetails([
-  "sku1",
-  "sku2",
-]);
-const subDetails = await CafeBazaarBilling.getSubscriptionSkuDetails([
-  "sub_sku1",
-]);
+const inApp = await CafeBazaarBilling.getInAppSkuDetails(["sku1", "sku2"]);
+const subs = await CafeBazaarBilling.getSubscriptionSkuDetails(["sub_sku1"]);
 ```
 
-### 7. Disconnect
-
-When you are done (e.g. user leaves the billing screen), disconnect:
+**Disconnect**
 
 ```ts
 await CafeBazaarBilling.disconnect();
 ```
 
-For each `connect()` call you should call `disconnect()` once.
+Call `disconnect()` once per `connect()` when you are done with billing (e.g. user leaves the screen).
 
-## API summary
+---
 
-| Method                                  | Description                            |
-| --------------------------------------- | -------------------------------------- |
-| `connect(options?)`                     | Connect to Bazaar billing; call first. |
-| `disconnect()`                          | Disconnect from Bazaar billing.        |
-| `purchaseProduct(productId, options?)`  | Start in-app product purchase flow.    |
-| `subscribeProduct(productId, options?)` | Start subscription purchase flow.      |
-| `consumePurchase(purchaseToken)`        | Consume a consumable purchase.         |
-| `getPurchasedProducts()`                | List purchased in-app products.        |
-| `getSubscribedProducts()`               | List active subscriptions.             |
-| `queryPurchaseProduct(productId)`       | Get one purchase by product ID.        |
-| `querySubscribeProduct(productId)`      | Get one subscription by product ID.    |
-| `getInAppSkuDetails(productIds)`        | Get in-app product SKU details.        |
-| `getSubscriptionSkuDetails(productIds)` | Get subscription SKU details.          |
+## API reference
+
+| Method | Description | Reference |
+|--------|-------------|-----------|
+| `connect(options?)` | Connect to Bazaar billing. Call before any other method. | [Cafe Bazaar – In-App Billing](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) |
+| `disconnect()` | Disconnect from Bazaar. | — |
+| `purchaseProduct(productId, options?)` | Start in-app product purchase flow. | [Purchase flow](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) |
+| `subscribeProduct(productId, options?)` | Start subscription purchase flow. | [Subscriptions](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription) |
+| `consumePurchase(purchaseToken)` | Consume a consumable purchase. | [Consumables](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) |
+| `getPurchasedProducts()` | List all purchased in-app products. | — |
+| `getSubscribedProducts()` | List active subscriptions. | — |
+| `queryPurchaseProduct(productId)` | Get purchase for one product ID. | — |
+| `querySubscribeProduct(productId)` | Get subscription for one product ID. | — |
+| `getInAppSkuDetails(productIds)` | Get in-app product SKU details (price, title, etc.). | — |
+| `getSubscriptionSkuDetails(productIds)` | Get subscription SKU details. | — |
+
+---
 
 ## Types
 
-- **PurchaseResult**: `orderId`, `packageName`, `productId`, `purchaseTime`, `purchaseState`, `developerPayload`, `purchaseToken`
-- **SkuDetails**: `sku`, `type`, `price`, `title`, `description`
-- **ConnectOptions**: `{ rsaPublicKey?: string }`
-- **PurchaseOptions**: `{ developerPayload?: string; dynamicPriceToken?: string }`
+Defined in the package; import when needed:
+
+```ts
+import type {
+  ConnectOptions,
+  PurchaseResult,
+  PurchaseOptions,
+  SkuDetails,
+} from "expo-cafebazaar-billing";
+```
+
+| Type | Description | Reference |
+|------|-------------|-----------|
+| **ConnectOptions** | `{ rsaPublicKey?: string }` — options for `connect()`. | [Verification](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) |
+| **PurchaseResult** | `orderId`, `packageName`, `productId`, `purchaseTime`, `purchaseState`, `developerPayload`, `purchaseToken` — result of a successful purchase or subscription. | [Cafe Bazaar purchase object](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/intro) |
+| **PurchaseOptions** | `{ developerPayload?: string; dynamicPriceToken?: string }` — options for `purchaseProduct()` / `subscribeProduct()`. | — |
+| **SkuDetails** | `sku`, `type`, `price`, `title`, `description` — product/subscription info from Bazaar. | — |
+
+---
 
 ## Errors
 
-The module rejects with Expo-style errors (code + message). Common codes:
+The module throws Expo-style errors (with `code` and `message`). Common codes:
 
-- `ERR_NOT_CONNECTED` – Call `connect()` first.
-- `ERR_NO_ACTIVITY` – No activity (e.g. app in background).
-- `ERR_PURCHASE` / `ERR_SUBSCRIBE` – User canceled or Bazaar returned an error.
-- `ERR_CONNECT` – Connection to Bazaar failed (e.g. Bazaar not installed).
-- `ERR_DISCONNECT` – Billing was disconnected by Bazaar.
+| Code | Meaning | What to do |
+|------|---------|------------|
+| `ERR_NOT_CONNECTED` | Billing not connected. | Call `connect()` first. |
+| `ERR_NO_ACTIVITY` | No active activity (e.g. app in background). | Retry when the app is in foreground. |
+| `ERR_PURCHASE` / `ERR_SUBSCRIBE` | User cancelled or Bazaar returned an error. | Show `message` to the user; optionally call `refresh()`. |
+| `ERR_CONNECT` | Connection to Bazaar failed. | Ensure Cafe Bazaar app is installed and up to date. |
+| `ERR_DISCONNECT` | Billing was disconnected by Bazaar. | Call `connect()` again if needed. |
+
+See [Expo modules error handling](https://docs.expo.dev/versions/latest/sdk/modules-core/) for the error shape.
+
+---
 
 ## License
 
