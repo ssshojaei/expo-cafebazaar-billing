@@ -3,16 +3,18 @@
   "version": "1.0.0",
   "description": "Cafe Bazaar In-App Billing for Expo (Android). Purchase products and subscriptions via Poolakey SDK.",
   "main": "build/index.js",
-  "types": "src/index.ts",
+  "types": "build/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./build/index.d.ts",
       "default": "./build/index.js"
     }
   },
   "sideEffects": false,
   "scripts": {
-    "build": "expo-module build"
+    "build": "expo-module build",
+    "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "expo",

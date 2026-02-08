@@ -2,5 +2,6 @@ import type { CafeBazaarBillingModule } from "./CafeBazaarBilling.types";
 export type { CafeBazaarBillingModule, ConnectOptions, PurchaseOptions, PurchaseResult, SkuDetails, } from "./CafeBazaarBilling.types";
 declare const NativeModule: CafeBazaarBillingModule | null;
 export default NativeModule;
-export { useBillingProduct, useBillingSubscription } from "./hooks/index";
+export { useBillingProduct } from "./hooks/useBillingProduct";
+export { useBillingSubscription } from "./hooks/useBillingSubscription";
 //# sourceMappingURL=index.d.ts.map

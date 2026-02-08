@@ -15,4 +15,5 @@ const NativeModule =
 
 export default NativeModule;
 
-export { useBillingProduct, useBillingSubscription } from "./hooks/index";
+export { useBillingProduct } from "./hooks/useBillingProduct";
+export { useBillingSubscription } from "./hooks/useBillingSubscription";
